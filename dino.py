@@ -1,24 +1,40 @@
-import time
+# resolução da tela pode interferir a ação do programa
+from selenium import webdriver  # modulo para abrir página web
 from PIL import ImageGrab  # modulo para tirar print da tela
-import pyautogui
+import pyautogui  # modulo para controlar ações do dino
+import time
 
-# bg_color = (247, 247, 247)
-# dino_color = (83, 83, 83)
-j = 280
+driver = webdriver.Chrome()  # abre a página do jogo no Chrome
+driver.get('chrome://dino/')
+driver.maximize_window()
+
+speed = 280
 color_bg = 0
 
 
-def capture_screen():
-    screen = ImageGrab.grab()  # salva o print na varável screen
+def capture_screen():  # Captura a tela
+    screen = ImageGrab.grab()
     return screen
 
 
-def detect_enemyup(screen):
-    global j
-    global color_bg
+def capture_color():  # Busca a cor de fundo do jogo
     color_bg = screen.getpixel((200, 200))
-    for x in range(280, 200 + int(j)):
-        for y in range(645, 670):  # 612
+    return color_bg
+
+
+def detect_enemyup(screen, color_bg):  # logica que determina se dino pula
+    for x in range(280, 200 + int(speed)):
+        for y in range(690, 700):
+            color = screen.getpixel((x, y))
+            if color != color_bg:
+                return True
+            else:
+                color_bg = color
+
+
+def detect_enemydown(screen, color_bg):  # logica que determina se dino se agacha
+    for x in range(int(speed), 200 + int(speed)):
+        for y in range(585, 595):
             color = screen.getpixel((x, y))  # salva a cor do pixel
             if color != color_bg:
                 return True
@@ -26,38 +42,37 @@ def detect_enemyup(screen):
                 color_bg = color
 
 
-def detect_enemydown(screen):
-    color_bg = screen.getpixel((200, 200))
-    for x in range(int(j), 200 + int(j)):
-        for y in range(545, 552):
-            color = screen.getpixel((x, y))  # salva a cor do pixel
-        if color != color_bg:
-            return True
-        else:
-            color_bg = color
-
-
-def jump():
-    global j
+def jump():  # pula
     pyautogui.keyDown("up")
     time.sleep(0.2)
     pyautogui.keyDown("down")
     pyautogui.keyUp("down")
-    j += 1.2
+    d_speed()
 
 
-def down():
+def down():  # agacha
     pyautogui.keyDown("down")
-    time.sleep(0.3)
+    time.sleep(0.2)
     pyautogui.keyUp("down")
+    d_speed()
 
 
-print("Start in 3 seconds...")
-time.sleep(3)
+def d_speed():  # aumenta area de leitura de acordo com a velocidade
+    global speed
+    speed += 1
 
-while True:
-    screen = capture_screen()  # chama a funcão
-    if detect_enemyup(screen):
+
+while driver.current_window_handle:  # corpo principal
+    screen = capture_screen()
+    color_bg = capture_color()
+    if detect_enemyup(screen, color_bg):
         jump()
-    if detect_enemydown(screen):
+    if detect_enemydown(screen, color_bg):
         down()
+    print(speed)
+    if screen.getpixel((672, 446)) != color_bg or speed == 280:
+       pyautogui.keyDown("space")
+       time.sleep(0.2)
+       pyautogui.keyUp("space")
+       speed = 280
+       d_speed()
